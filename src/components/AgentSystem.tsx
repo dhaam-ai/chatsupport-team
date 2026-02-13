@@ -56,7 +56,7 @@ import type { TableColumn } from "chatsupport-ui";
 import ResponsiveCardTable from "chatsupport-ui/src/components/ResponsiveAgentTable";
 import FilterDropdown from "../../../chatsupport-ui/src/components/FilterDropdown";
 import AgentCardView from "./AgentCardView";
-import CustomDropdown from "./customdropdown";
+import CustomDropdown from "./CustomDropDown";
 
 import { apiClient } from "../services/apiClient";
 import { fetchAgents } from "../store/agentSlice";
