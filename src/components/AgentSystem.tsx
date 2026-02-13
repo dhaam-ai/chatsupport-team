@@ -53,8 +53,10 @@ import ManagerDetail from "./ManagerDetail";
 import CreateAgentModal from "./CreateAgentModal";
 import { ReusableTable } from "chatsupport-ui";
 import type { TableColumn } from "chatsupport-ui";
-import ResponsiveCardTable from "chatsupport-ui/src/components/ResponsiveAgentTable";
-import FilterDropdown from "../../../chatsupport-ui/src/components/FilterDropdown";
+import ResponsiveCardTable from "chatsupport-ui/src/components/ResponsiveAgentTable.tsx";
+import FilterDropdown from "chatsupport-ui/src/components/FilterDropdown.tsx";
+// import ResponsiveCardTable from "chatsupport-ui/src/components/ResponsiveAgentTable";
+// import FilterDropdown from "../../../chatsupport-ui/src/components/FilterDropdown";
 import AgentCardView from "./AgentCardView";
 import CustomDropdown from "./CustomDropDown";
 
