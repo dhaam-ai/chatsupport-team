@@ -56,53 +56,54 @@ export default defineConfig({
   },
 
   module: {
-    rules: [
-      {
-        test: /\.js$/,
-        resolve: {
-          fullySpecified: false,
-        },
-      {
-        test: /\.svg$/,
-        type: "asset",
+  rules: [
+    {
+      test: /\.js$/,
+      resolve: {
+        fullySpecified: false,
       },
-      {
-        test: /\.(png|jpe?g|gif)$/i,
-        type: "asset/resource",
-      },
-      {
-        test: /\.css$/,
-        use: ["postcss-loader"],
-        type: "css",
-      },
-      {
-        test: /\.(jsx?|tsx?)$/,
-        use: [
-          {
-            loader: "builtin:swc-loader",
-            options: {
-              jsc: {
-                parser: {
-                  syntax: "typescript",
-                  tsx: true,
-                },
-                transform: {
-                  react: {
-                    runtime: "automatic",
-                    development: isLocalDev,
-                    refresh: isLocalDev,
-                  },
+    },
+    {
+      test: /\.svg$/,
+      type: "asset",
+    },
+    {
+      test: /\.(png|jpe?g|gif)$/i,
+      type: "asset/resource",
+    },
+    {
+      test: /\.css$/,
+      use: ["postcss-loader"],
+      type: "css",
+    },
+    {
+      test: /\.(jsx?|tsx?)$/,
+      use: [
+        {
+          loader: "builtin:swc-loader",
+          options: {
+            jsc: {
+              parser: {
+                syntax: "typescript",
+                tsx: true,
+              },
+              transform: {
+                react: {
+                  runtime: "automatic",
+                  development: isLocalDev,
+                  refresh: isLocalDev,
                 },
               },
-              env: { targets },
             },
+            env: { targets },
           },
-        ],
-      },
-    ],
-  },
-  
-  plugins: [
+        },
+      ],
+    },
+  ],
+},
+
+    plugins: [
     new rspack.HtmlRspackPlugin({
       template: "./index.html",
       minify: !isLocalDev,
