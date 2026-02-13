@@ -41,13 +41,3 @@ COPY nginx.conf /etc/nginx/conf.d/
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-```
-
-But this will fix only 3 of the 4 errors. The 4th error is a **code bug**:
-```
-import CustomDropdown from "./customdropdown";
-```
-
-This file doesn't exist. Check in the repo — what's the actual filename? Run:
-```
-ls src/components/ | grep -i dropdown
