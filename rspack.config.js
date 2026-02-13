@@ -58,6 +58,11 @@ export default defineConfig({
   module: {
     rules: [
       {
+        test: /\.js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      {
         test: /\.svg$/,
         type: "asset",
       },
