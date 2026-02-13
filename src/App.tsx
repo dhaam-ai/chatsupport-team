@@ -6,12 +6,12 @@ import "./index.css";
 
 const App = () => {
   return (
-    <ReduxProvider>
-      <div className="h-full">
+    <div className="h-full w-full overflow-hidden">
+      <ReduxProvider>
         <Toaster position="top-right" />
         <AgentSystemComponent />
-      </div>
-    </ReduxProvider>
+      </ReduxProvider>
+    </div>
   );
 };
 

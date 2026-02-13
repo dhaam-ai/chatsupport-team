@@ -1,5 +1,5 @@
-// API Client Service - Centralized API logic for team microservice
-import type { Agent } from '../store/agentSlice';
+// API Client Service - Centralized API logic for tickets microservice
+import { authService } from '../services/authService';
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -13,20 +13,49 @@ export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
-  account_status: number;
+  status: number;
 }
 
 const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
-
-
 };
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
-const API_BASE_URL = 'https://dev-nexus.dhaamai.com';
 
-// "https://dev-nexus.dhaamai.com/docs"
+/**
+ * Get authentication headers from localStorage
+ * Returns headers with Bearer token if available
+ */
+export const getAuthHeaders = (): Record<string, string> => {
+  const idToken = localStorage.getItem('id_token');
+  if (idToken) {
+    return {
+      'Authorization': `Bearer ${idToken}`,
+    };
+  }
+  return {};
+};
+
+/**
+ * Check if user is authenticated
+ */
+export const isAuthenticated = (): boolean => {
+  const token = localStorage.getItem('id_token');
+  const expiresAt = localStorage.getItem('token_expires_at');
+  
+  if (!token || !expiresAt) return false;
+  
+  return Date.now() < parseInt(expiresAt, 10);
+};
+
+// Support multiple API base URLs
+const API_URLS = {
+  TUNNEL: 'https://docs-dev.dhaamai.com',
+  LOCAL: 'http://127.0.0.1:8000',
+};
+// "https://docs-dev.dhaamai.com/docs"
+//"https://jumpy-eneida-arrogantly.ngrok-free.dev"
 
 class ApiClient {
   private baseUrl: string;
@@ -34,7 +63,7 @@ class ApiClient {
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private cacheExpiryMs = 5 * 60 * 1000; // 5 minutes default cache
 
-  constructor(baseUrl = API_BASE_URL, timeout = DEFAULT_TIMEOUT) {
+  constructor(baseUrl = API_URLS.TUNNEL, timeout = DEFAULT_TIMEOUT) {
     this.baseUrl = baseUrl;
     this.timeout = timeout;
   }
@@ -55,12 +84,13 @@ class ApiClient {
     } = options;
 
     const url = `${baseUrl}${endpoint}`;
-    const mergedHeaders = { ...DEFAULT_HEADERS, ...headers };
+    const authHeaders = getAuthHeaders();
+    const mergedHeaders = { ...DEFAULT_HEADERS, ...authHeaders, ...headers };
 
     // Check cache for GET requests
     if (method === 'GET' && this.isCached(url)) {
       console.log('[ApiClient] Cache hit:', url);
-      return { success: true, data: this.getFromCache(url), account_status: 200 };
+      return { success: true, data: this.getFromCache(url), status: 200 };
     }
 
     try {
@@ -89,17 +119,40 @@ class ApiClient {
       }
 
       console.log(
-        `[ApiClient] Response: ${response.account_status} ${response.statusText}`,
+        `[ApiClient] Response: ${response.status} ${response.statusText}`,
         responseData
       );
+
+      // Handle 401 Unauthorized - attempt token refresh and retry
+      if (response.status === 401) {
+        console.log('[ApiClient] 401 Unauthorized - Attempting token refresh');
+        try {
+          const refreshed = await authService.refreshToken();
+          if (refreshed) {
+            console.log('[ApiClient] Token refresh successful - Retrying request');
+            // Recursively retry the request with refreshed token
+            return this.request<T>(endpoint, options);
+          }
+        } catch (refreshError) {
+          console.error('[ApiClient] Token refresh failed:', refreshError);
+        }
+        
+        return {
+          success: false,
+          error: `HTTP ${response.status}: ${
+            typeof responseData === 'string' ? responseData : JSON.stringify(responseData)
+          }`,
+          status: response.status,
+        };
+      }
 
       if (!response.ok) {
         return {
           success: false,
-          error: `HTTP ${response.account_status}: ${
+          error: `HTTP ${response.status}: ${
             typeof responseData === 'string' ? responseData : JSON.stringify(responseData)
           }`,
-          account_status: response.account_status,
+          status: response.status,
         };
       }
 
@@ -111,7 +164,7 @@ class ApiClient {
       return {
         success: true,
         data: responseData,
-        account_status: response.account_status,
+        status: response.status,
       };
     } catch (error: any) {
       const errorMessage = error.name === 'AbortError'
@@ -123,7 +176,7 @@ class ApiClient {
       return {
         success: false,
         error: errorMessage,
-        account_status: 0,
+        status: 0,
       };
     }
   }
@@ -148,6 +201,17 @@ class ApiClient {
     options: Omit<ApiRequestOptions, 'method' | 'body'> = {}
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'PUT', body });
+  }
+
+  /**
+   * PATCH request - convenience method
+   */
+  async patch<T = any>(
+    endpoint: string,
+    body: any,
+    options: Omit<ApiRequestOptions, 'method' | 'body'> = {}
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { ...options, method: 'PATCH', body });
   }
 
   /**
@@ -205,7 +269,13 @@ class ApiClient {
   }
 }
 
-// Export singleton instance
-export const apiClient = new ApiClient();
+// Export singleton instances for different APIs
+export const apiClientTunnel = new ApiClient(API_URLS.TUNNEL);
+export const apiClientLocal = new ApiClient(API_URLS.LOCAL);
+
+// Default to tunnel client
+export const apiClient = apiClientTunnel;
+
+export { API_URLS };
 
 export default ApiClient;

@@ -5,7 +5,7 @@ const shimmer = "animate-pulse bg-gray-200";
 export default function AgentDetailSkeleton() {
   return (
     <div className="h-full bg-white flex flex-col overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 pb-2 space-y-6">
 
         {/* Header Skeleton */}
         <div className="bg-white shadow-xl rounded-2xl border border-gray-200 p-8">

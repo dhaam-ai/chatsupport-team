@@ -71,7 +71,7 @@ const AgentTableView: React.FC<AgentTableViewProps> = ({
   }, [filteredAgents]);
   if (loading) {
     return (
-      <div className="overflow-x-auto max-h-[calc(100vh-350px)]  overflow-y-auto">
+      <div className="overflow-x-auto max-h-[calc(100vh-400px)]  overflow-y-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gradient-to-r from-purple-100/80 to-indigo-100/80 backdrop-blur-sm border-b border-purple-200/50">
             <tr>
@@ -104,7 +104,7 @@ const AgentTableView: React.FC<AgentTableViewProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto max-h-[calc(100vh-350px)] overflow-y-auto custom-scrollbar" style={{ overflowX: 'hidden' }}>
+    <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto custom-scrollbar" style={{ overflowX: 'hidden' }}>
       <table className="min-w-full divide-y divide-gray-200/50">
         <thead className="bg-gradient-to-r from-purple-100/80 to-indigo-100/80 backdrop-blur-sm border-b border-purple-200/50 sticky top-0 z-10">
           <tr>

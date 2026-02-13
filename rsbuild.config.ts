@@ -24,6 +24,19 @@ export default defineConfig({
       experiments: {
         moduleFederation: true,
       },
+      module: {
+        rules: [
+          {
+            test: /\.css$/,
+            exclude: /\.module\.css$/,
+            type: 'css',
+          },
+          {
+            test: /\.module\.css$/,
+            type: 'css/module',
+          },
+        ],
+      },
       output: {
         uniqueName: 'team',
         publicPath: 'auto',

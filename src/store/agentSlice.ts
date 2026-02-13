@@ -20,6 +20,26 @@ import AgentDetail from '../components/AgentDetail';
 import { apiClient } from '../services/apiClient';
 
 
+
+interface Department {
+  id: number;
+  department_name: string;
+  app_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Add to AgentState interface
+export interface AgentState {
+  // ... existing properties
+  departments: Department[];
+  departmentsLoading: boolean;
+  departmentsError: string | null;
+}
+
+
+
+
 // Thunk to fetch agent tickets
 export const fetchAgentTickets = createAsyncThunk(
   'agents/fetchAgentTickets',
@@ -63,7 +83,7 @@ export const fetchAgentTickets = createAsyncThunk(
 
 
 
-    
+
 
     const response = await apiClient.post(
       `/tickets/agent/`,
@@ -116,7 +136,7 @@ export interface agentDetail {
   performance_score: number;
   profile_picture: string;
   email: string;
-  contact_no: string;
+  contact_number: string;
   last_active: string;
   tickets_count: number;
   ticket_page: number;
@@ -126,7 +146,6 @@ export interface agentDetail {
   id?: string;
   avatar?: string;
   phone?: string;
-  location?: string;
   team?: string;
   role?: string;
   ticketsClosed?: number;
@@ -147,7 +166,7 @@ export interface Agent {
   performance_score: number;
   profile_picture: string;
   email: string;
-  contact_no: string;
+  contact_number: string;
   last_active: string;
   tickets_count: number;
   ticket_page: number;
@@ -184,6 +203,9 @@ export interface AgentState {
   agentTicketsTotal: number;
   agentTicketsLoading: boolean;
   agentTicketsError: string | null;
+  departmentHierarchyEnabled: boolean;
+  departmentHierarchyLoading: boolean;
+  departmentHierarchyError: string | null;
 }
 
 const initialState: AgentState = {
@@ -197,6 +219,11 @@ const initialState: AgentState = {
   filters: {
     account_status: [],
   },
+
+  departments: [],
+  departmentsLoading: false,
+  departmentsError: null,
+
   agentDetail: null,
   agentDetailLoading: false,
   agentDetailError: null,
@@ -204,6 +231,9 @@ const initialState: AgentState = {
   agentTicketsTotal: 0,
   agentTicketsLoading: false,
   agentTicketsError: null,
+  departmentHierarchyEnabled: false,
+  departmentHierarchyLoading: false,
+  departmentHierarchyError: null,
 };
 
 interface FetchAgentsParams {
@@ -217,7 +247,66 @@ interface FetchAgentsParams {
   sort_order?: 'asc' | 'desc';
   ticket_page?: number;
   ticket_limit?: number;
+  priority?: string[];
+  category?: number[];
 }
+
+const formatResolutionTime = (totalMinutes) => {
+  if (!totalMinutes || isNaN(totalMinutes) || totalMinutes <= 0) return '0m 0s';
+  
+  // If more than 60 minutes, show Hours and Minutes
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = Math.round(totalMinutes % 60);
+    return `${hours}h ${mins}m`;
+  }
+  
+  // If less than 60 minutes, show Minutes and Seconds
+  const mins = Math.floor(totalMinutes);
+  const secs = Math.round((totalMinutes - mins) * 60);
+  return `${mins}m ${secs}s`;
+};
+
+// Add thunk to fetch departments
+export const fetchDepartments = createAsyncThunk(
+  'agents/fetchDepartments',
+  async (app_id: string, { rejectWithValue }) => {
+    const response = await apiClient.post('/agent-department/list', {
+      app_id,
+    });
+
+    if (!response.success) {
+      return rejectWithValue(response.error || 'Failed to fetch departments');
+    }
+
+    return response.data;
+  }
+);
+
+
+// Add thunk to create agent
+interface CreateAgentParams {
+  app_id: string;
+  username: string;
+  address: string;
+  contact_number: string;
+  email: string;
+  profile_picture?: string;
+  department_id: number;
+}
+
+export const createAgent = createAsyncThunk(
+  'agents/createAgent',
+  async (params: CreateAgentParams, { rejectWithValue }) => {
+    const response = await apiClient.post('/agent/create', params);
+
+    if (!response.success) {
+      return rejectWithValue(response.error || 'Failed to create agent');
+    }
+
+    return response.data;
+  }
+);
 
 export const fetchAgents = createAsyncThunk(
   'agents/fetchAgents',
@@ -225,7 +314,9 @@ export const fetchAgents = createAsyncThunk(
     const response = await apiClient.post('/agent/', {
       search: params.search || '',
       account_status: params.account_status || [],
-      app_id: params.app_id || 'fastapi-6222d6',
+      priority: params.priority || [],
+      category: params.category || [],
+      app_id: params.app_id || '12345',
       start_date: params.start_date || '',
       end_date: params.end_date || '',
       sort_order: params.sort_order || 'asc',
@@ -252,14 +343,14 @@ interface UpdateStatusParams {
 export const updateAgentStatus = createAsyncThunk(
   'agents/updateStatus',
   async (params: UpdateStatusParams, { rejectWithValue }) => {
-    const appId = params.appId || 'fastapi-6222d6';
+    const appId = params.appId || '12345';
     const response = await apiClient.put(
       `/agent/status`,
-      { 
+      {
         app_id: appId,
-      agent_id: params.agentId,
-       status: params.account_status
-       }
+        agent_id: params.agentId,
+        status: params.account_status
+      }
     );
 
     if (!response.success) {
@@ -278,7 +369,7 @@ interface DeleteAgentParams {
 export const deleteAgent = createAsyncThunk(
   'agents/deleteAgent',
   async (params: DeleteAgentParams, { rejectWithValue }) => {
-    const appId = params.appId || 'fastapi-6222d6';
+    const appId = params.appId || '12345';
     const response = await apiClient.post(
       `/agent/delete`,
       {
@@ -292,6 +383,80 @@ export const deleteAgent = createAsyncThunk(
     }
 
     return { agentId: params.agentId, ...response.data };
+  }
+);
+
+
+
+// Add interface after CreateAgentParams
+interface UpdateAgentParams {
+  app_id: string;
+  agent_id: number;
+  username: string;
+  email: string;
+  contact_number: string;
+  address: string;
+  profile_picture?: string;
+
+}
+
+// Add thunk after createAgent
+export const updateAgent = createAsyncThunk(
+  'agents/updateAgent',
+  async (params: UpdateAgentParams, { rejectWithValue }) => {
+    const response = await apiClient.patch('/agent/update', params);
+
+    if (!response.success) {
+      return rejectWithValue(response.error || 'Failed to update agent');
+    }
+
+    return response.data;
+  }
+);
+
+// Fetch department hierarchy status
+export const fetchDepartmentHierarchy = createAsyncThunk(
+  'agents/fetchDepartmentHierarchy',
+  async (app_id: string, { rejectWithValue }) => {
+    const response = await apiClient.get(
+      `/organization/department-hierarchy?app_id=${app_id}`,
+      {
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
+      }
+    );
+
+    if (!response.success) {
+      return rejectWithValue(
+        response.error || 'Failed to fetch department hierarchy'
+      );
+    }
+
+    return response.data;
+  }
+);
+
+
+// Update department hierarchy status
+interface UpdateDepartmentHierarchyParams {
+  app_id: string;
+  enable_department_hierarchy: boolean;
+}
+
+export const updateDepartmentHierarchy = createAsyncThunk(
+  'agents/updateDepartmentHierarchy',
+  async (params: UpdateDepartmentHierarchyParams, { rejectWithValue }) => {
+    const response = await apiClient.put(
+      '/organization/department-hierarchy',
+      params
+    );
+
+    if (!response.success) {
+      return rejectWithValue(response.error || 'Failed to update department hierarchy');
+    }
+
+    return response.data;
   }
 );
 
@@ -332,15 +497,16 @@ const agentSlice = createSlice({
             ...agent,
             id: agent.agent_id || agent.id,
             name: agent.agent_name || agent.name,
-            phone: agent.contact_no || agent.phone,
+            phone: agent.contact_number || agent.phone,
             location: agent.address || agent.location,
             role: agent.role || 'Agent',
             team: agent.team || 'Unassigned',
+            address: agent.address,
             account_status: agent.account_status || '',
             agent_rating: agent.agent_rating ? Number(agent.agent_rating).toFixed(1) : '0.0',
-            avatar:  `https://i.pravatar.cc/150?img=${(agent.agent_id || agent.id || 1) % 70 + 1}`,
+            avatar: `https://i.pravatar.cc/150?img=${(agent.agent_id || agent.id || 1) % 70 + 1}`,
             ticketsClosed: agent.total_tickets || 0,
-            avgResponseTime: agent.avg_response_time ? String(Math.floor(agent.avg_response_time)) : '0',
+            avgResponseTime: agent.average_resolution_time ? String(Math.floor(agent.average_resolution_time)) : '0',
             performanceScore: agent.performance_score || 0,
           };
         } else {
@@ -383,15 +549,16 @@ const agentSlice = createSlice({
             ...agent,
             id: String(agent.agent_id || agent.id),
             avatar: `https://i.pravatar.cc/150?img=${dummyAvatarIndex}`,
-            phone: agent.contact_no || agent.phone || '',
+            phone: agent.contact_number || agent.phone || '',
             location: agent.address || agent.location || '',
             team: agent.team || 'Unassigned',
             role: agent.role || 'Agent',
+            address: agent.address,
             ticketsClosed: agent.tickets_count || 0,
             performanceScore: agent.performance_score || 0,
-            avgResponseTime: agent.avgResponseTime || '0m 0s',
+            avgResponseTime: formatResolutionTime(agent.average_resolution_time) || '0m 0s',
             specialties: agent.specialties || [],
-            rate: agent.rate || 0,
+            rate: Number(agent?.agent_rating || 0).toFixed(1) || 0,
             availability: agent.last_active ? 'Online' : 'Offline',
           };
         });
@@ -425,8 +592,69 @@ const agentSlice = createSlice({
       })
       .addCase(deleteAgent.rejected, (state, action) => {
         state.error = action.payload as string;
-      });
-  },
+      })
+      .addCase(fetchDepartments.pending, (state) => {
+        state.departmentsLoading = true;
+        state.departmentsError = null;
+      })
+      .addCase(fetchDepartments.fulfilled, (state, action) => {
+        state.departmentsLoading = false;
+        state.departments = action.payload.departments || [];
+      })
+      .addCase(fetchDepartments.rejected, (state, action) => {
+        state.departmentsLoading = false;
+        state.departmentsError = action.payload as string;
+      })
+      .addCase(createAgent.fulfilled, (state, action) => {
+        // Optionally refresh the agents list after creation
+        // You may want to dispatch fetchAgents here
+      })
+      .addCase(createAgent.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+    .addCase(updateAgent.fulfilled, (state, action) => {
+        // Update the agent in the state
+        const agentIndex = state.agents.findIndex(
+          (agent) => agent.agent_id === action.meta.arg.agent_id
+        );
+        if (agentIndex !== -1) {
+          state.agents[agentIndex] = {
+            ...state.agents[agentIndex],
+            ...action.meta.arg,
+          };
+        }
+      })
+    .addCase(updateAgent.rejected, (state, action) => {
+      state.error = action.payload as string;
+    })
+    .addCase(fetchDepartmentHierarchy.pending, (state) => {
+      state.departmentHierarchyLoading = true;
+      state.departmentHierarchyError = null;
+    })
+    .addCase(fetchDepartmentHierarchy.fulfilled, (state, action) => {
+      state.departmentHierarchyLoading = false;
+      state.departmentHierarchyEnabled = action.payload.enable_department_hierarchy || false;
+    })
+    .addCase(fetchDepartmentHierarchy.rejected, (state, action) => {
+      state.departmentHierarchyLoading = false;
+      state.departmentHierarchyError = action.payload as string;
+    })
+    .addCase(updateDepartmentHierarchy.pending, (state) => {
+      state.departmentHierarchyLoading = true;
+      state.departmentHierarchyError = null;
+    })
+    .addCase(updateDepartmentHierarchy.fulfilled, (state, action) => {
+      state.departmentHierarchyLoading = false;
+      state.departmentHierarchyEnabled = action.payload.enable_department_hierarchy || false;
+    })
+    .addCase(updateDepartmentHierarchy.rejected, (state, action) => {
+      state.departmentHierarchyLoading = false;
+      state.departmentHierarchyError = action.payload as string;
+    })
+
+
+
+},
 });
 
 export const { setSearch, setPage, setLimit, setStatusFilter } = agentSlice.actions;

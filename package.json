@@ -1,30 +1,42 @@
 {
   "name": "team",
   "version": "1.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "build": "rsbuild build",
-    "dev": "rsbuild dev --open",
-    "preview": "rsbuild preview"
+    "build": "cross-env NODE_ENV=production rspack build --mode production",
+    "build:dev": "cross-env NODE_ENV=production REACT_APP_ENV=dev rspack build --mode production",
+    "build:test": "cross-env NODE_ENV=production REACT_APP_ENV=test rspack build --mode production",
+    "build:staging": "cross-env NODE_ENV=production REACT_APP_ENV=staging rspack build --mode production",
+    "build:prod": "cross-env NODE_ENV=production REACT_APP_ENV=prod rspack build --mode production",
+    "start": "cross-env NODE_ENV=local rspack serve"
   },
   "dependencies": {
+    "@module-federation/enhanced": "^0.8.9",
+    "@reduxjs/toolkit": "^2.8.2",
     "chatsupport-ui": "file:../chatsupport-ui",
-    "@reduxjs/toolkit": "^2.10.1",
-    "lucide-react": "0.553.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "framer-motion": "^12.23.27",
+    "lucide-react": "^0.553.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.4.1",
     "react-redux": "^9.2.0",
-    "react-router-dom": "6.28.0",
-    "react-hot-toast": "^2.4.1"
+    "react-router-dom": "^7.9.4",
+    "recharts": "^3.6.0"
   },
   "devDependencies": {
-    "@module-federation/enhanced": "^0.21.4",
-    "@rsbuild/core": "^1.6.3",
-    "@rsbuild/plugin-react": "^1.4.2",
-    "@tailwindcss/postcss": "^4.1.17",
-    "@types/node": "^24.10.1",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "tailwindcss": "^4.1.17",
-    "typescript": "^5.9.3"
+    "@rspack/cli": "~1.2.0",
+    "@rspack/core": "~1.2.0",
+    "@rspack/plugin-react-refresh": "~1.0.1",
+    "@tailwindcss/postcss": "^4.0.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "cross-env": "^7.0.3",
+    "postcss": "^8.2.1",
+    "postcss-loader": "^8.0.0",
+    "react-refresh": "^0.14.0",
+    "tailwindcss": "^4.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
   }
 }

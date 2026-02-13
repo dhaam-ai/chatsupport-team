@@ -10,6 +10,16 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
+  /* Ensure height inheritance for module federation */
+  html, body, #root {
+    height: 100%;
+  }
+
+  /* Ensure proper containment for module federation - matches Tickets */
+  :root {
+    overflow: hidden;
+  }
+
   body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -19,6 +29,33 @@
 @layer utilities {
   .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 6px;
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
   }
 }
 
@@ -46,5 +83,66 @@
   }
   100% {
     background-position: 200% 0;
+  }
+}
+
+/* Desktop and mobile responsive styles using media queries */
+/* These prevent layout jumping that can occur with Tailwind responsive utilities */
+/* NOTE: Using !important to ensure these override any Tailwind classes */
+
+/* Hide on mobile, show on small screens and above (sm: 640px) */
+.hideOnMobile {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .hideOnMobile {
+    display: flex;
+  }
+}
+
+/* Show on mobile, hide on sm+ */
+.showOnMobileOnly {
+  display: flex;
+}
+
+@media (min-width: 640px) {
+  .showOnMobileOnly {
+    display: none;
+  }
+}
+
+/* Desktop toolbar - hidden on mobile, flex on lg+ */
+.desktopToolbar {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .desktopToolbar {
+    display: flex !important;
+  }
+}
+
+/* Desktop only view - hidden on mobile, flex column on lg+ */
+.desktopOnly {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .desktopOnly {
+    display: flex !important;
+    flex-direction: column;
+  }
+}
+
+/* Mobile only view - flex column on mobile, hidden on lg+ */
+.mobileOnly {
+  display: flex !important;
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .mobileOnly {
+    display: none !important;
   }
 }

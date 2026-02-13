@@ -1,0 +1,92 @@
+name: CI/CD ChatSupport Team (Microfrontend)
+
+on:
+  push:
+    branches: [main, dev, staging]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Determine environment
+      id: env
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+          echo "build_script=build:prod" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+          echo "environment=staging" >> $GITHUB_OUTPUT
+          echo "build_script=build:staging" >> $GITHUB_OUTPUT
+        else
+          echo "environment=dev" >> $GITHUB_OUTPUT
+          echo "build_script=build:dev" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push Docker image
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        ECR_REGISTRY=$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        IMAGE_URI_SHA=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY_TEAM }}:${{ github.sha }}
+        IMAGE_URI_LATEST=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY_TEAM }}:latest
+
+        # Build Docker image with environment-specific build script
+        docker build \
+          --build-arg BUILD_SCRIPT=${{ steps.env.outputs.build_script }} \
+          --build-arg ENVIRONMENT=${{ steps.env.outputs.environment }} \
+          -t $IMAGE_URI_SHA \
+          -t $IMAGE_URI_LATEST \
+          .
+
+        # Push both tags to ECR
+        docker push $IMAGE_URI_SHA
+        docker push $IMAGE_URI_LATEST
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v4
+      with:
+        version: 'latest'
+
+    - name: Update kubeconfig for EKS
+      run: |
+        aws eks update-kubeconfig \
+          --name ${{ secrets.EKS_CLUSTER_NAME }} \
+          --region ${{ secrets.AWS_REGION }}
+
+    - name: Deploy to EKS
+      run: |
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        ECR_REGISTRY=$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        IMAGE_URI=$ECR_REGISTRY/${{ secrets.ECR_REPOSITORY_TEAM }}:${{ github.sha }}
+
+        # Replace <IMAGE> in your deployment.yaml with the new SHA-tagged image
+        sed "s|<IMAGE>|$IMAGE_URI|g" k8s/deployment.yaml | kubectl apply -f -
+
+        # Verify rollout status
+        kubectl rollout status deployment/chatsupport-team

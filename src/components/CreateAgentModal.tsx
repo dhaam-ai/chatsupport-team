@@ -1,51 +1,112 @@
-// CreateAgentModal.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   User,
   Mail,
   Phone,
   MapPin,
-  Briefcase,
-  Users,
-  Calendar,
-  Shield,
   AlertCircle,
   Check,
   Camera,
   Building,
 } from 'lucide-react';
+import CustomDropdown from './customdropdown';
+
+interface Department {
+  id: number;
+  department_name: string;
+  app_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DropdownItem {
+  id: number | string;
+  name: string;
+  email?: string;
+  avatar?: string;
+  status?: string;
+  [key: string]: any;
+}
+
+interface CustomDropdownProps {
+  items: DropdownItem[];
+  selectedItem: DropdownItem | null;
+  onSelect: (item: DropdownItem) => void;
+  onSearch: (query: string) => void;
+  searchValue: string;
+  loading: boolean;
+  placeholder?: string;
+  label?: string;
+  required?: boolean;
+  showSearch?: boolean;
+}
 
 interface CreateAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSuccess?: () => void;
+  apiClient: any;
+  CustomDropdown: React.ComponentType<CustomDropdownProps>;
 }
 
-const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onClose, onSubmit }) => {
+const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  apiClient,
+  CustomDropdown
+}) => {
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
-    phone: '',
-    role: '',
-    team: '',
-    location: '',
-    department: '',
-    status: 'Active',
-    startDate: '',
-    expertise: [] as string[],
+    contact_number: '',
+    address: '',
+    department_id: null as number | null,
+    profile_picture: '',
   });
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [departmentSearch, setDepartmentSearch] = useState('');
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
-  const roles = ['Agent', 'Senior Agent', 'Team Lead', 'Manager', 'Supervisor'];
-  const teams = ['Support Team A', 'Support Team B', 'Technical Support', 'Sales Support', 'Customer Success'];
-  const departments = ['Customer Service', 'Technical', 'Sales', 'Billing', 'Operations'];
-  const expertiseOptions = ['Technical Support', 'Billing', 'Account Management', 'Product Knowledge', 'Customer Relations'];
+  const APP_ID = '12345';
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Fetch departments when modal opens
+  useEffect(() => {
+    if (isOpen && departments.length === 0) {
+      console.log('[CreateAgentModal] Fetching departments...');
+      fetchDepartments();
+    }
+  }, [isOpen]);
+
+  const fetchDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      console.log('[CreateAgentModal] Calling department API...');
+      const response = await apiClient.post('/agent-department/list', {
+        app_id: APP_ID,
+      });
+      console.log('[CreateAgentModal] Department API response:', response);
+      
+      if (response.success && response.data?.departments) {
+        console.log('[CreateAgentModal] Departments loaded:', response.data.departments);
+        setDepartments(response.data.departments);
+      } else {
+        console.error('[CreateAgentModal] Failed to fetch departments:', response);
+      }
+    } catch (error) {
+      console.error('[CreateAgentModal] Department fetch error:', error);
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
@@ -60,35 +121,27 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onClose, on
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
+        const base64String = reader.result as string;
+        setAvatarPreview(base64String);
+        setFormData(prev => ({ ...prev, profile_picture: base64String }));
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const toggleExpertise = (skill: string) => {
-    setFormData(prev => ({
-      ...prev,
-      expertise: prev.expertise.includes(skill)
-        ? prev.expertise.filter(s => s !== skill)
-        : [...prev.expertise, skill]
-    }));
   };
 
   const validateStep = (step: number) => {
     const newErrors: Record<string, string> = {};
     
     if (step === 1) {
-      if (!formData.name) newErrors.name = 'Name is required';
-      if (!formData.email) newErrors.email = 'Email is required';
+      if (!formData.username.trim()) newErrors.username = 'Name is required';
+      if (!formData.email.trim()) newErrors.email = 'Email is required';
       else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
-      if (!formData.phone) newErrors.phone = 'Phone is required';
+      if (!formData.contact_number.trim()) newErrors.contact_number = 'Phone number is required';
     }
     
     if (step === 2) {
-      if (!formData.role) newErrors.role = 'Role is required';
-      if (!formData.team) newErrors.team = 'Team is required';
-      if (!formData.department) newErrors.department = 'Department is required';
+      if (!formData.department_id) newErrors.department_id = 'Department is required';
+      if (!formData.address.trim()) newErrors.address = 'Address is required';
     }
 
     setErrors(newErrors);
@@ -105,196 +158,229 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onClose, on
     setCurrentStep(prev => prev - 1);
   };
 
-  const handleSubmit = () => {
-    if (validateStep(currentStep)) {
-      onSubmit(formData);
-      onClose();
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        role: '',
-        team: '',
-        location: '',
-        department: '',
-        status: 'Active',
-        startDate: '',
-        expertise: [],
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      email: '',
+      contact_number: '',
+      address: '',
+      department_id: null,
+      profile_picture: '',
+    });
+    setAvatarPreview(null);
+    setCurrentStep(1);
+    setErrors({});
+    setDepartmentSearch('');
+  };
+
+  const handleSubmit = async () => {
+    if (!validateStep(currentStep)) return;
+
+    setIsSubmitting(true);
+    try {
+      console.log('[CreateAgentModal] Creating agent with payload:', {
+        app_id: APP_ID,
+        username: formData.username,
+        email: formData.email,
+        contact_number: formData.contact_number,
+        address: formData.address,
+        department_id: formData.department_id,
       });
-      setAvatarPreview(null);
-      setCurrentStep(1);
+
+      const response = await apiClient.post('/agent/create', {
+        app_id: APP_ID,
+        username: formData.username,
+        email: formData.email,
+        contact_number: formData.contact_number,
+        address: formData.address,
+        department_id: formData.department_id,
+        profile_picture: formData.profile_picture || 'default_profile.png',
+      });
+
+      console.log('[CreateAgentModal] Create agent response:', response);
+
+      if (response.success) {
+        resetForm();
+        onClose();
+        if (onSuccess) onSuccess();
+      } else {
+        setErrors({ submit: response.error || 'Failed to create agent' });
+      }
+    } catch (error: any) {
+      console.error('[CreateAgentModal] Create agent error:', error);
+      setErrors({ submit: error?.message || 'Failed to create agent' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!isSubmitting) {
+      resetForm();
+      onClose();
     }
   };
 
   if (!isOpen) return null;
 
+  const filteredDepartments = departments.filter(dept =>
+    dept.department_name.toLowerCase().includes(departmentSearch.toLowerCase())
+  );
+
+  const departmentItems = filteredDepartments.map(dept => ({
+    id: dept.id,
+    name: dept.department_name,
+  }));
+
+  const selectedDepartment = formData.department_id
+    ? departmentItems.find(item => item.id === formData.department_id)
+    : null;
+
   return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-100 transition-opacity duration-300"
-        onClick={onClose}
-      />
-      
-      {/* Modal Container */}
-      <div className="fixed inset-0 z-110 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="relative bg-white border-b border-gray-200 px-6 py-5">
-            <button
-              onClick={onClose}
-              className="absolute top-5 right-5 p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500 hover:text-gray-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="pr-10">
-              <h2 className="text-2xl font-bold text-gray-900">Add New Agent</h2>
-              <p className="text-gray-500 text-sm mt-1">Fill in the details to create a new team member</p>
-            </div>
-
-            {/* Progress Steps */}
-            <div className="flex items-center gap-2 mt-6">
-              {[
-                { num: 1, label: 'Personal' },
-                { num: 2, label: 'Work' },
-                { num: 3, label: 'Review' }
-              ].map((step, idx) => (
-                <React.Fragment key={step.num}>
-                  <div className="flex items-center gap-2">
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm transition-all ${
-                      currentStep >= step.num 
-                        ? 'bg-purple-600 text-white shadow-md' 
-                        : 'bg-gray-200 text-gray-500'
-                    }`}>
-                      {currentStep > step.num ? <Check className="w-4 h-4" /> : step.num}
-                    </div>
-                    <span className={`text-xs font-medium hidden sm:inline ${
-                      currentStep >= step.num ? 'text-purple-600' : 'text-gray-500'
-                    }`}>{step.label}</span>
-                  </div>
-                  {idx < 2 && (
-                    <div className={`flex-1 h-0.5 transition-all ${
-                      currentStep > step.num ? 'bg-purple-600' : 'bg-gray-200'
-                    }`} />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-100 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full lg:max-w-3xl sm:max-w-full max-h-[90vh] overflow-hidden flex flex-col">
+        
+        {/* Header */}
+        <div className="px-6 py-5 lg:px-6 lg:py-5 sm:px-4 sm:py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-white">
+          <div>
+            <h3 className="text-xl lg:text-xl sm:text-lg font-bold text-gray-900">Create New Agent</h3>
+            <p className="text-sm text-gray-600 mt-0.5">Fill in the details to add a new team member</p>
           </div>
+          <button
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50">
+        {/* Progress Steps */}
+        <div className="px-6 py-4 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-2">
+            {[
+              { num: 1, label: 'Personal' },
+              { num: 2, label: 'Work' },
+              { num: 3, label: 'Review' }
+            ].map((step, idx) => (
+              <React.Fragment key={step.num}>
+                <div className="flex items-center gap-2">
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm transition-all ${
+                    currentStep >= step.num 
+                      ? 'bg-purple-600 text-white shadow-md' 
+                      : 'bg-gray-200 text-gray-500'
+                  }`}>
+                    {currentStep > step.num ? <Check className="w-4 h-4" /> : step.num}
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:inline ${
+                    currentStep >= step.num ? 'text-purple-600' : 'text-gray-500'
+                  }`}>{step.label}</span>
+                </div>
+                {idx < 2 && (
+                  <div className={`flex-1 h-0.5 transition-all ${
+                    currentStep > step.num ? 'bg-purple-600' : 'bg-gray-200'
+                  }`} />
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        {/* Form Body - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
           {/* Step 1: Personal Information */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              <div className="flex justify-center">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-16 h-16 text-purple-300" />
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4 text-purple-600" />
+                  Personal Information
+                </h4>
+                
+                <div className="flex justify-center mb-6">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg">
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-12 h-12 text-purple-300" />
+                      )}
+                    </div>
+                    <label className="absolute bottom-0 right-0 bg-purple-600 text-white p-2 rounded-full cursor-pointer hover:bg-purple-700 shadow-lg transition-all hover:scale-110">
+                      <Camera className="w-4 h-4" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Full Name <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      placeholder="Enter full name"
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-all ${
+                        errors.username ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.username && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" /> {errors.username}
+                      </p>
                     )}
                   </div>
-                  <label className="absolute bottom-0 right-0 bg-purple-600 text-white p-2.5 rounded-full cursor-pointer hover:bg-purple-700 shadow-lg transition-all hover:scale-110">
-                    <Camera className="w-4 h-4" />
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email Address <span className="text-red-600">*</span>
+                    </label>
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="agent@company.com"
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-all ${
+                        errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
                     />
-                  </label>
-                </div>
-              </div>
+                    {errors.email && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" /> {errors.email}
+                      </p>
+                    )}
+                  </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="John Doe"
-                    className={`w-full pl-11 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all ${
-                      errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}
-                  />
-                </div>
-                {errors.name && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" /> {errors.name}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="john.doe@company.com"
-                    className={`w-full pl-11 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all ${
-                      errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" /> {errors.email}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="+1 (555) 123-4567"
-                    className={`w-full pl-11 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all ${
-                      errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" /> {errors.phone}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Location
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    placeholder="New York, USA"
-                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                  />
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Phone Number <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="contact_number"
+                      value={formData.contact_number}
+                      onChange={handleInputChange}
+                      placeholder="+1 (555) 123-4567"
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-all ${
+                        errors.contact_number ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.contact_number && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" /> {errors.contact_number}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -304,227 +390,168 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({ isOpen, onClose, on
           {currentStep === 2 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Role <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className={`w-full pl-11 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all appearance-none ${
-                      errors.role ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <option value="">Select a role</option>
-                    {roles.map(role => (
-                      <option key={role} value={role}>{role}</option>
-                    ))}
-                  </select>
-                </div>
-                {errors.role && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" /> {errors.role}
-                  </p>
-                )}
-              </div>
+                <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Building className="w-4 h-4 text-purple-600" />
+                  Work Details
+                </h4>
+                
+                <div className="space-y-4">
+                  <div>
+                    <CustomDropdown
+                      label="Department"
+                      required
+                      items={departmentItems}
+                      selectedItem={selectedDepartment || null}
+                      onSelect={(item) => {
+                        console.log('[CreateAgentModal] Department selected:', item);
+                        setFormData(prev => ({ ...prev, department_id: item.id as number }));
+                        if (errors.department_id) {
+                          const newErrors = { ...errors };
+                          delete newErrors.department_id;
+                          setErrors(newErrors);
+                        }
+                      }}
+                      onSearch={setDepartmentSearch}
+                      searchValue={departmentSearch}
+                      loading={departmentsLoading}
+                      placeholder="Select a department"
+                      showSearch={false}
+                    />
+                    {errors.department_id && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" /> {errors.department_id}
+                      </p>
+                    )}
+                  </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Team <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    name="team"
-                    value={formData.team}
-                    onChange={handleInputChange}
-                    className={`w-full pl-11 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all appearance-none ${
-                      errors.team ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <option value="">Select a team</option>
-                    {teams.map(team => (
-                      <option key={team} value={team}>{team}</option>
-                    ))}
-                  </select>
-                </div>
-                {errors.team && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" /> {errors.team}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Department <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className={`w-full pl-11 pr-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all appearance-none ${
-                      errors.department ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}
-                  >
-                    <option value="">Select a department</option>
-                    {departments.map(dept => (
-                      <option key={dept} value={dept}>{dept}</option>
-                    ))}
-                  </select>
-                </div>
-                {errors.department && (
-                  <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" /> {errors.department}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Start Date
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="date"
-                    name="startDate"
-                    value={formData.startDate}
-                    onChange={handleInputChange}
-                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Initial Status
-                </label>
-                <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all appearance-none"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Training">Training</option>
-                    <option value="On Leave">On Leave</option>
-                  </select>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Address <span className="text-red-600">*</span>
+                    </label>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      placeholder="123 Main Street, New York, NY 10001"
+                      rows={4}
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 transition-all resize-none ${
+                        errors.address ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
+                    />
+                    {errors.address && (
+                      <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" /> {errors.address}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 3: Expertise & Final Details */}
+          {/* Step 3: Review */}
           {currentStep === 3 && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Areas of Expertise
-                </label>
-                <div className="grid grid-cols-1 gap-2">
-                  {expertiseOptions.map(skill => (
-                    <button
-                      key={skill}
-                      type="button"
-                      onClick={() => toggleExpertise(skill)}
-                      className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
-                        formData.expertise.includes(skill)
-                          ? 'border-purple-500 bg-purple-50 text-purple-700 font-semibold'
-                          : 'border-gray-200 hover:border-purple-300 text-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{skill}</span>
-                        {formData.expertise.includes(skill) && (
-                          <Check className="w-5 h-5 text-purple-600" />
-                        )}
+                <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-purple-600" />
+                  Review Information
+                </h4>
+                
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-100">
+                  <div className="space-y-4">
+                    {avatarPreview && (
+                      <div className="flex justify-center mb-4">
+                        <img src={avatarPreview} alt="Profile" className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md" />
                       </div>
-                    </button>
-                  ))}
+                    )}
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600 block mb-1">Name</span>
+                        <span className="font-semibold text-gray-900">{formData.username || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block mb-1">Email</span>
+                        <span className="font-semibold text-gray-900 break-all">{formData.email || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block mb-1">Phone</span>
+                        <span className="font-semibold text-gray-900">{formData.contact_number || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 block mb-1">Department</span>
+                        <span className="font-semibold text-gray-900">{selectedDepartment?.name || '—'}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-600 block mb-1">Address</span>
+                        <span className="font-semibold text-gray-900">{formData.address || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Summary */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-6 border-2 border-purple-100">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Check className="w-5 h-5 text-purple-600" />
-                  Summary
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Name:</span>
-                    <span className="font-semibold text-gray-900">{formData.name || '—'}</span>
+                {errors.submit && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-red-600 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {errors.submit}
+                    </p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-semibold text-gray-900">{formData.email || '—'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Role:</span>
-                    <span className="font-semibold text-gray-900">{formData.role || '—'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Team:</span>
-                    <span className="font-semibold text-gray-900">{formData.team || '—'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Department:</span>
-                    <span className="font-semibold text-gray-900">{formData.department || '—'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Status:</span>
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                      {formData.status}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
-          {/* Footer */}
-          <div className="border-t border-gray-200 px-6 py-4 bg-white">
-            <div className="flex items-center justify-between gap-3">
+        {/* Modal Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {currentStep === 3 && 'Review the information before creating'}
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={currentStep === 1 ? handleClose : handleBack}
+              disabled={isSubmitting}
+              className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all disabled:opacity-50"
+            >
+              {currentStep === 1 ? 'Cancel' : 'Back'}
+            </button>
+            
+            {currentStep < 3 ? (
               <button
-                onClick={currentStep === 1 ? onClose : handleBack}
-                className="px-5 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                type="button"
+                onClick={handleNext}
+                disabled={isSubmitting}
+                className="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
               >
-                {currentStep === 1 ? 'Cancel' : 'Back'}
+                Continue →
               </button>
-              
-              <div className="flex items-center gap-3">
-                {currentStep < 3 ? (
-                  <button
-                    onClick={handleNext}
-                    className="px-6 py-2.5 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
-                    style={{ background: 'linear-gradient(135deg, #7c43df 0%, #9b6edb 100%)' }}
-                  >
-                    Continue →
-                  </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="px-5 py-2.5 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Creating...
+                  </>
                 ) : (
-                  <button
-                    onClick={handleSubmit}
-                    className="px-6 py-2.5 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-                    style={{ background: 'linear-gradient(135deg, #7c43df 0%, #9b6edb 100%)' }}
-                  >
+                  <>
                     <Check className="w-4 h-4" />
                     Create Agent
-                  </button>
+                  </>
                 )}
-              </div>
-            </div>
+              </button>
+            )}
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
