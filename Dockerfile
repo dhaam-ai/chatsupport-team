@@ -12,8 +12,9 @@ RUN apt-get update && apt-get install -y git openssh-client && rm -rf /var/lib/a
 # Set up SSH client and git configuration
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-# Clone the private chatsupport-ui dependency
-RUN --mount=type=ssh git clone git@github.com:dhaam-ai/chatsupport-ui.git /chatsupport-ui
+# Clone the private chatsupport-ui dependency to parent directory (mimics local structure)
+RUN --mount=type=ssh git clone git@github.com:dhaam-ai/chatsupport-ui.git /chatsupport-ui && \
+    ln -s /chatsupport-ui /app/../chatsupport-ui
 
 # Copy package.json for better dependency caching
 COPY package.json ./
@@ -40,3 +41,13 @@ COPY nginx.conf /etc/nginx/conf.d/
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
+```
+
+But this will fix only 3 of the 4 errors. The 4th error is a **code bug**:
+```
+import CustomDropdown from "./customdropdown";
+```
+
+This file doesn't exist. Check in the repo — what's the actual filename? Run:
+```
+ls src/components/ | grep -i dropdown
