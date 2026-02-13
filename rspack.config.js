@@ -44,7 +44,7 @@ export default defineConfig({
   
   output: {
     uniqueName: "team",
-    publicPath: "auto",
+    publicPath: "/cs-team/",
     path: path.resolve(__dirname, "dist"),
     filename: isLocalDev ? "[name].js" : "[name].[contenthash:8].js",
     chunkFilename: isLocalDev ? "[name].chunk.js" : "[name].[contenthash:8].chunk.js",
