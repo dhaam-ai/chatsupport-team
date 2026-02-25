@@ -1,5 +1,5 @@
 // Auth Service - Centralized authentication API logic
-const API_BASE_URL = 'https://docs-dev.dhaamai.com/analytics/';
+const API_BASE_URL = 'https://docs-dev.dhaamai.com/';
 
 // Types
 export interface CheckUserRequest {

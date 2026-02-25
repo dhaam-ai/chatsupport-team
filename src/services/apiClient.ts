@@ -55,7 +55,7 @@ const API_URLS = {
   LOCAL: 'http://127.0.0.1:8000',
 };
 // "https://docs-dev.dhaamai.com/docs"
-//"https://jumpy-eneida-arrogantly.ngrok-free.dev"
+//"https://docs-dev.dhaamai.com"
 
 class ApiClient {
   private baseUrl: string;

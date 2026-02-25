@@ -10,7 +10,7 @@ import {
   Camera,
   Building,
 } from 'lucide-react';
-import CustomDropdown from './customdropdown';
+import CustomDropdown from './CustomDropDown';
 
 interface Department {
   id: number;
