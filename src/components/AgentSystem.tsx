@@ -51,10 +51,10 @@ import AgentQuickView from "./AgentQuickView";
 import AgentDetail from "./AgentDetail";
 import ManagerDetail from "./ManagerDetail";
 import CreateAgentModal from "./CreateAgentModal";
-import { ReusableTable } from "chatsupport-ui";
-import type { TableColumn } from "chatsupport-ui";
-import ResponsiveCardTable from "chatsupport-ui/src/components/ResponsiveAgentTable";
-import FilterDropdown from "../../../chatsupport-ui/src/components/FilterDropdown";
+import ReusableTable from "./utils/ReusableTable";
+// import type { TableColumn } from "chatsupport-ui";
+import ResponsiveCardTable from "./utils/ResponsiveAgentTable";
+import FiltersDropdown from "./utils/FiltersDropdown";
 import AgentCardView from "./AgentCardView";
 import CustomDropdown from "./CustomDropDown";
 
@@ -441,7 +441,7 @@ const AgentSystem = () => {
     return status === activeTab.toLowerCase();
   });
 
-  // Transform status options for FilterDropdown
+  // Transform status options for FiltersDropdown
   const statusOptions = useMemo(() => {
     return [
       { value: "active", label: "Active" },
@@ -451,7 +451,7 @@ const AgentSystem = () => {
     ];
   }, []);
 
-  // Transform department options for FilterDropdown
+  // Transform department options for FiltersDropdown
   const departmentOptions = useMemo(() => {
     return (departments || []).map((dept: any) => ({
       value: dept.id,
@@ -757,7 +757,7 @@ const AgentSystem = () => {
 
           <div className={tw["agent-toolbar"]}>
               <div className={tw["agent-toolbar-left"]}>
-                <FilterDropdown 
+                <FiltersDropdown 
                   onApplyFilters={handleApplyFilters}
                   onClearFilters={handleClearFilters}
                   statuses={statusOptions.map(s => s.value)}
