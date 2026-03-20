@@ -14,7 +14,6 @@
   "dependencies": {
     "@module-federation/enhanced": "^0.8.9",
     "@reduxjs/toolkit": "^2.8.2",
-    "chatsupport-ui": "file:../chatsupport-ui",
     "framer-motion": "^12.23.27",
     "lucide-react": "^0.553.0",
     "react": "^19.2.0",
