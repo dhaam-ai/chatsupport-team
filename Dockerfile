@@ -8,12 +8,6 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git openssh-client && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-# Clone and BUILD chatsupport-ui
-RUN --mount=type=ssh git clone git@github.com:dhaam-ai/chatsupport-ui.git /chatsupport-ui && \
-    cd /chatsupport-ui && \
-    npm install && \
-    npm run build
-
 COPY package.json ./
 
 ARG CACHEBUST=1
