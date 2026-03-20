@@ -3,7 +3,7 @@ import { X, Loader, Save, User, Mail, Phone, MapPin, Building2, AlertCircle, Cam
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface AgentData {
-  agent_id?: number | string;
+  user_id?: number | string;
   id?: number;
   username?: string;
   name?: string;
@@ -119,7 +119,7 @@ const EditAgentModal: React.FC<EditAgentModalProps> = ({
     if (agent && isOpen) {
       setFormData({
         id: agent.id,
-        agent_id: agent.agentId || agent.id,
+        user_id: agent.agentId || agent.id,
         username: agent.name,
         email: agent.email,
         contact_number: agent.phone|| '',
@@ -143,7 +143,7 @@ const EditAgentModal: React.FC<EditAgentModalProps> = ({
     try {
       const payload = {
         app_id: appId,
-        agent_id: formData.agent_id || formData.id || 0,
+        user_id: formData.user_id || formData.id || 0,
         username: formData.username || '',
         email: formData.email || '',
         contact_number: formData.contact_number || '',

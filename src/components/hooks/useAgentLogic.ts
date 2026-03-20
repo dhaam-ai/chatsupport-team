@@ -116,7 +116,7 @@ export const useAgentLogic = () => {
 
   // Fetch departments on mount
   useEffect(() => {
-    dispatch(fetchDepartments("12345"));
+    dispatch(fetchDepartments("12775"));
   }, [dispatch]);
 
   // Tab data
@@ -319,7 +319,7 @@ export const useAgentLogic = () => {
       try {
         await dispatch(updateAgent(updatedAgent as any)).unwrap();
         toast.success("Agent updated successfully!");
-        dispatch(fetchAgents({ app_id: "12345" })); // Refresh list
+        dispatch(fetchAgents({ app_id: "12775" })); // Refresh list
       } catch (error) {
         toast.error("Failed to update agent");
       }

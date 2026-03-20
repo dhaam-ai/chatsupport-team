@@ -1,4 +1,4 @@
-// API Client Service - Centralized API logic for tickets microservice
+﻿// API Client Service - Centralized API logic for tickets microservice
 import { authService } from '../services/authService';
 
 export interface ApiRequestOptions {
@@ -73,7 +73,8 @@ class ApiClient {
    */
   async request<T = any>(
     endpoint: string,
-    options: ApiRequestOptions = {}
+    options: ApiRequestOptions = {},
+    _retryCount: number = 0
   ): Promise<ApiResponse<T>> {
     const {
       method = 'GET',
@@ -123,15 +124,15 @@ class ApiClient {
         responseData
       );
 
-      // Handle 401 Unauthorized - attempt token refresh and retry
-      if (response.status === 401) {
+      // Handle 401 Unauthorized - attempt token refresh and retry (max 1 retry)
+      if (response.status === 401 && _retryCount < 1) {
         console.log('[ApiClient] 401 Unauthorized - Attempting token refresh');
         try {
           const refreshed = await authService.refreshToken();
           if (refreshed) {
             console.log('[ApiClient] Token refresh successful - Retrying request');
-            // Recursively retry the request with refreshed token
-            return this.request<T>(endpoint, options);
+            // Retry the request once with refreshed token
+            return this.request<T>(endpoint, options, _retryCount + 1);
           }
         } catch (refreshError) {
           console.error('[ApiClient] Token refresh failed:', refreshError);

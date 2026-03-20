@@ -273,8 +273,8 @@ const AgentSystem = () => {
   // Fetch departments and department hierarchy on component mount only
   useEffect(() => {
     // Initial fetch when component mounts
-    dispatch(fetchDepartments("12345"));
-    dispatch(fetchDepartmentHierarchy("12345"));
+    dispatch(fetchDepartments("12775"));
+    dispatch(fetchDepartmentHierarchy("12775"));
   }, [dispatch]);
 
 
@@ -297,7 +297,7 @@ const AgentSystem = () => {
       }
       
       // Refetch from API for consistency
-      dispatch(fetchDepartmentHierarchy("12345"));
+      dispatch(fetchDepartmentHierarchy("12775"));
     };
 
     // Storage event listener for localStorage changes (works across tabs)
@@ -351,7 +351,7 @@ const AgentSystem = () => {
       apiClient.clearCache('department-hierarchy');
       console.log('[Team] API cache cleared for department-hierarchy on route change');
       
-      dispatch(fetchDepartmentHierarchy("12345"));
+      dispatch(fetchDepartmentHierarchy("12775"));
     };
     
     handleRouteChange();
@@ -369,7 +369,7 @@ const AgentSystem = () => {
         apiClient.clearCache('department-hierarchy');
         console.log('[Team] API cache cleared for department-hierarchy on component init');
         
-        dispatch(fetchDepartmentHierarchy("12345"));
+        dispatch(fetchDepartmentHierarchy("12775"));
       }
     };
     
@@ -382,7 +382,7 @@ const AgentSystem = () => {
         console.log('[Team] Navigated to team via back/forward, clearing cache and fetching');
         const { apiClient } = await import('../services/apiClient');
         apiClient.clearCache('department-hierarchy');
-        dispatch(fetchDepartmentHierarchy("12345"));
+        dispatch(fetchDepartmentHierarchy("12775"));
       }
     };
 
@@ -402,15 +402,26 @@ const AgentSystem = () => {
   }, [activeTab, tabData]);
 
   // Initialize toggle state based on agent account_status
+  // useEffect(() => {
+  //   const newState: Record<string, boolean> = {};
+  //   agents?.forEach((agent) => {
+  //     const agentId = agent.user_id?.toString() || agent.id || "";
+  //     newState[agentId] =
+  //       (agent.account_status || "").toLowerCase() === "active";
+  //   });
+  //   setAgentActiveState(newState);
+  // }, [agents]);
+
   useEffect(() => {
-    const newState: Record<string, boolean> = {};
-    agents?.forEach((agent) => {
-      const agentId = agent.agent_id?.toString() || agent.id || "";
-      newState[agentId] =
-        (agent.account_status || "").toLowerCase() === "active";
-    });
-    setAgentActiveState(newState);
-  }, [agents]);
+  const newState: Record<string, boolean> = {};
+  agents?.forEach((agent) => {
+    const agentId = agent.id || "";  // agent.id is already normalized by Redux
+    if (agentId) {
+      newState[agentId] = (agent.account_status || "").toLowerCase() === "active";
+    }
+  });
+  setAgentActiveState(newState);
+}, [agents]);
 
   // Handle click outside for density dropdown
   useEffect(() => {
@@ -530,7 +541,7 @@ const AgentSystem = () => {
       setSelectedAgents(
         new Set(
           filteredAgents
-            .map((a) => a.agent_id?.toString() || a.id || "")
+            .map((a) => a.user_id?.toString() || a.id || "")
             .filter((id) => id)
         )
       );
@@ -542,7 +553,7 @@ const AgentSystem = () => {
   }, [isCreateModalOpen]);
 
   const selectedAgent = (agents || []).find(
-    (a) => (a.agent_id?.toString() || a.id) === selectedAgentId
+    (a) => (a.user_id?.toString() || a.id) === selectedAgentId
   );
 
   const selectedManager = dummyManagers.find(
@@ -551,7 +562,7 @@ const AgentSystem = () => {
 
   const handleMouseEnter = (agentId: string) => {
     const agent = agents?.find(
-      (a) => (a.agent_id?.toString() || a.id) === agentId
+      (a) => (a.user_id?.toString() || a.id) === agentId
     );
     if (agent) {
       setHoveredAgent(agentId);
@@ -909,9 +920,9 @@ const AgentSystem = () => {
                     <ReusableTable
                       columns={agentColumns}
                       rows={filteredAgents.map((agent) => {
-                        const agentId = agent.agent_id?.toString() || agent.id || "";
+                        const agentId = agent.user_id?.toString() || agent.id || "";
                         return {
-                          id: agentId,
+                          id: agent.id,
                           agentId: agentId,
                           name: agent.name || "Unknown",
                           role: agent.role || "-",
@@ -1181,7 +1192,7 @@ const AgentSystem = () => {
             onClose={() => setShowCreateModal(false)}
             onSuccess={() => {
               toast.success("Agent created successfully!");
-              dispatch(fetchAgents({ app_id: "12345" }));
+              dispatch(fetchAgents({ app_id: "12775" }));
             }}
             apiClient={apiClient}
             CustomDropdown={CustomDropdown}
@@ -1199,12 +1210,12 @@ const AgentSystem = () => {
             try {
               await dispatch(updateAgent(updatedAgent as any)).unwrap();
               toast.success("Agent updated successfully!");
-              dispatch(fetchAgents({ app_id: "12345" }));
+              dispatch(fetchAgents({ app_id: "12775" }));
             } catch (error) {
               toast.error("Failed to update agent");
             }
           }}
-          appId="12345"
+          appId="12775"
         />
 
         {deleteModalOpen && (

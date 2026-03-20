@@ -6,7 +6,7 @@ import type { RootState, AppDispatch } from '../store/store';
 
 // Define the Agent type for better typing (mapped from API response)
 export interface Agent {
-  id: string; // Maps from agent_id
+  id: string; // Maps from user_id
   avatar: string; // Maps from profile_picture
   name: string;
   role: string; // No role in API, use fallback
