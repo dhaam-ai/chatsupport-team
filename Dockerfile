@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y git openssh-client && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p -m 0700 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-COPY package.json ./
+COPY package.json package-lock.json* ./
 
 ARG CACHEBUST=1
 

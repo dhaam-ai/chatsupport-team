@@ -8,7 +8,12 @@ export default defineConfig({
   server: {
     port: 3004,  // ← Different port for team
   },
-
+  source: {
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+      'process.env': JSON.stringify({ NODE_ENV: process.env.NODE_ENV || 'production' }),
+    },
+  },
   output: {
     publicPath: 'http://localhost:3004/',
   },
