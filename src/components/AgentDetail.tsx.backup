@@ -96,12 +96,12 @@ const AgentDetail = ({
 
   // Fetch agent detail on mount or when agent changes
   useEffect(() => {
-    dispatch(fetchAgentDetail({ agent_id: agent.id, app_id: '12345' }) as any);
+    dispatch(fetchAgentDetail({ agent_id: agent.id, app_id: '12775' }) as any);
   }, [agent.id, dispatch]);
 
   // Fetch tickets when agent or ticket table state changes
   useEffect(() => {
-    dispatch(fetchAgentTickets({ agent_id: agent.id, app_id: '12345', page: currentPage, limit: ticketsPerPage, search: searchQuery, status: statusFilter !== 'All' ? [statusFilter] : [] }) as any);
+    dispatch(fetchAgentTickets({ agent_id: agent.id, app_id: '12775', page: currentPage, limit: ticketsPerPage, search: searchQuery, status: statusFilter !== 'All' ? [statusFilter] : [] }) as any);
   }, [agent.id, currentPage, ticketsPerPage, searchQuery, statusFilter, dispatch]);
 
   // Use agentDetail from Redux if available, otherwise fallback to prop
@@ -1349,8 +1349,8 @@ const AgentSystem = () => {
 
   // Fetch departments and department hierarchy on component mount
   useEffect(() => {
-    dispatch(fetchDepartments("12345"));
-    dispatch(fetchDepartmentHierarchy("12345"));
+    dispatch(fetchDepartments("12775"));
+    dispatch(fetchDepartmentHierarchy("12775"));
   }, [dispatch]);
 
   // Sync local departmentHierarchy state with Redux state
@@ -2126,7 +2126,7 @@ const AgentSystem = () => {
             onClose={() => setShowCreateModal(false)}
             onSuccess={() => {
               toast.success("Agent created successfully!");
-              dispatch(fetchAgents({ app_id: "12345" }));
+              dispatch(fetchAgents({ app_id: "12775" }));
             }}
             apiClient={apiClient}
             CustomDropdown={CustomDropdown}
@@ -2144,12 +2144,12 @@ const AgentSystem = () => {
             try {
               await dispatch(updateAgent(updatedAgent as any)).unwrap();
               toast.success("Agent updated successfully!");
-              dispatch(fetchAgents({ app_id: "12345" }));
+              dispatch(fetchAgents({ app_id: "12775" }));
             } catch (error) {
               toast.error("Failed to update agent");
             }
           }}
-          appId="12345"
+          appId="12775"
         />
 
         {deleteModalOpen && (

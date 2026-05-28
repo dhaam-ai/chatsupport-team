@@ -67,8 +67,8 @@ export const fetchAgentTickets = createAsyncThunk(
     const payload = {
       search,
       app_id,
-      agent_id,
       user_id,
+      agent_id,
       user_role,
       priority,
       account_status,
@@ -101,12 +101,12 @@ export const fetchAgentTickets = createAsyncThunk(
 export const fetchAgentDetail = createAsyncThunk(
   'agents/fetchAgentDetail',
   async (
-    { agent_id, app_id }: { agent_id: number; app_id: string },
+    { user_id, app_id }: { user_id: number; app_id: string },
     { rejectWithValue }
   ) => {
     const response = await apiClient.post(
       '/agent/detail/page',
-      { agent_id, app_id }
+      { user_id, app_id }
     );
 
     if (!response.success) {
@@ -127,7 +127,7 @@ export interface Ticket {
 }
 
 export interface agentDetail {
-  agent_id: number;
+  user_id: number;
   app_id: string;
   name: string;
   status_id: number;
@@ -157,7 +157,7 @@ export interface agentDetail {
 
 
 export interface Agent {
-  agent_id: number;
+  user_id: number;
   app_id: string;
   name: string;
   status_id: number;
@@ -316,7 +316,7 @@ export const fetchAgents = createAsyncThunk(
       account_status: params.account_status || [],
       priority: params.priority || [],
       category: params.category || [],
-      app_id: params.app_id || '12345',
+      app_id: params.app_id || '12775',
       start_date: params.start_date || '',
       end_date: params.end_date || '',
       sort_order: params.sort_order || 'asc',
@@ -343,12 +343,12 @@ interface UpdateStatusParams {
 export const updateAgentStatus = createAsyncThunk(
   'agents/updateStatus',
   async (params: UpdateStatusParams, { rejectWithValue }) => {
-    const appId = params.appId || '12345';
+    const appId = params.appId || '12775';
     const response = await apiClient.put(
       `/agent/status`,
       {
         app_id: appId,
-        agent_id: params.agentId,
+        user_id: params.agentId,
         status: params.account_status
       }
     );
@@ -369,12 +369,12 @@ interface DeleteAgentParams {
 export const deleteAgent = createAsyncThunk(
   'agents/deleteAgent',
   async (params: DeleteAgentParams, { rejectWithValue }) => {
-    const appId = params.appId || '12345';
+    const appId = params.appId || '12775';
     const response = await apiClient.post(
       `/agent/delete`,
       {
         app_id: appId,
-        agent_id: params.agentId,
+        user_id: params.agentId,
       }
     );
 
@@ -391,7 +391,7 @@ export const deleteAgent = createAsyncThunk(
 // Add interface after CreateAgentParams
 interface UpdateAgentParams {
   app_id: string;
-  agent_id: number;
+  user_id: number;
   username: string;
   email: string;
   contact_number: string;
@@ -495,7 +495,8 @@ const agentSlice = createSlice({
           // Map API fields to UI fields, but keep all original fields for type compatibility
           state.agentDetail = {
             ...agent,
-            id: agent.agent_id || agent.id,
+           // In fetchAgents.fulfilled transform:
+id: agent.user_id ? String(agent.user_id) : (agent.id || ""),
             name: agent.agent_name || agent.name,
             phone: agent.contact_number || agent.phone,
             location: agent.address || agent.location,
@@ -504,7 +505,7 @@ const agentSlice = createSlice({
             address: agent.address,
             account_status: agent.account_status || '',
             agent_rating: agent.agent_rating ? Number(agent.agent_rating).toFixed(1) : '0.0',
-            avatar: `https://i.pravatar.cc/150?img=${(agent.agent_id || agent.id || 1) % 70 + 1}`,
+            avatar: `https://i.pravatar.cc/150?img=${(agent.user_id || agent.id || 1) % 70 + 1}`,
             ticketsClosed: agent.total_tickets || 0,
             avgResponseTime: agent.average_resolution_time ? String(Math.floor(agent.average_resolution_time)) : '0',
             performanceScore: agent.performance_score || 0,
@@ -547,7 +548,7 @@ const agentSlice = createSlice({
           const dummyAvatarIndex = (index % 70) + 1; // Use avatars 1-70
           return {
             ...agent,
-            id: String(agent.agent_id || agent.id),
+            id: String(agent.user_id),
             avatar: `https://i.pravatar.cc/150?img=${dummyAvatarIndex}`,
             phone: agent.contact_number || agent.phone || '',
             location: agent.address || agent.location || '',
@@ -574,7 +575,7 @@ const agentSlice = createSlice({
       .addCase(updateAgentStatus.fulfilled, (state, action) => {
         // Update the agent account_status in the state
         const agentIndex = state.agents.findIndex(
-          (agent) => (agent.id || agent.agent_id) === action.payload.agentId
+          (agent) => (agent.id || agent.user_id) === action.payload.agentId
         );
         if (agentIndex !== -1) {
           state.agents[agentIndex].account_status = action.payload.account_status;
@@ -586,7 +587,7 @@ const agentSlice = createSlice({
       .addCase(deleteAgent.fulfilled, (state, action) => {
         // Remove the deleted agent from the state
         state.agents = state.agents.filter(
-          (agent) => (agent.id || agent.agent_id) !== action.payload.agentId
+          (agent) => (agent.id || agent.user_id) !== action.payload.agentId
         );
         state.total = Math.max(0, state.total - 1);
       })
@@ -615,7 +616,7 @@ const agentSlice = createSlice({
     .addCase(updateAgent.fulfilled, (state, action) => {
         // Update the agent in the state
         const agentIndex = state.agents.findIndex(
-          (agent) => agent.agent_id === action.meta.arg.agent_id
+          (agent) => agent.user_id === action.meta.arg.user_id
         );
         if (agentIndex !== -1) {
           state.agents[agentIndex] = {

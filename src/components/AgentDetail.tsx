@@ -64,7 +64,7 @@ const AgentDetail = ({ selectedAgent = null, setSelectedManagerId }: { selectedA
     // If selectedAgent is passed as prop, use its data directly
     if (selectedAgent) {
       const numericAgentId = selectedAgent.agent_id || selectedAgent.id;
-      const appId = '12345';
+      const appId = '12775';
       
       if (numericAgentId) {
         // Fetch agent tickets for the selected agent
@@ -80,7 +80,7 @@ const AgentDetail = ({ selectedAgent = null, setSelectedManagerId }: { selectedA
     } else if (agentId) {
       // Fallback to URL-based routing (for future use)
       const numericAgentId = parseInt(agentId, 10);
-      const appId = '12345';
+      const appId = '12775';
       
       // Fetch agent details
       dispatch(fetchAgentDetail({ agent_id: numericAgentId, app_id: appId }));
@@ -195,7 +195,7 @@ const AgentDetail = ({ selectedAgent = null, setSelectedManagerId }: { selectedA
           </div>
           <p className="text-gray-600">Error loading agent details: {agentDetailError}</p>
           <button 
-            onClick={() => agentId && dispatch(fetchAgentDetail({ agent_id: parseInt(agentId), app_id: '12345' }))}
+            onClick={() => agentId && dispatch(fetchAgentDetail({ agent_id: parseInt(agentId), app_id: '12775' }))}
             className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
             Retry

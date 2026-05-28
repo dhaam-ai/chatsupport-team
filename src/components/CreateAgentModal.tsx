@@ -74,7 +74,7 @@ const CreateAgentModal: React.FC<CreateAgentModalProps> = ({
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
-  const APP_ID = '12345';
+  const APP_ID = '12775';
 
   // Fetch departments when modal opens
   useEffect(() => {

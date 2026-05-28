@@ -342,7 +342,7 @@ const AgentSystem = () => {
 
   // Fetch departments on component mount
   useEffect(() => {
-    dispatch(fetchDepartments("12345"));
+    dispatch(fetchDepartments("12775"));
   }, [dispatch]);
 
   const tabData = [
@@ -2038,7 +2038,7 @@ const AgentSystem = () => {
             onSuccess={() => {
               toast.success("Agent created successfully!");
               // Refresh agents list
-              dispatch(fetchAgents({ app_id: "12345" }));
+              dispatch(fetchAgents({ app_id: "12775" }));
             }}
             apiClient={apiClient}
             CustomDropdown={CustomDropdown}
@@ -2056,12 +2056,12 @@ const AgentSystem = () => {
             try {
               await dispatch(updateAgent(updatedAgent as any)).unwrap();
               toast.success("Agent updated successfully!");
-              dispatch(fetchAgents({ app_id: "12345" })); // Refresh list
+              dispatch(fetchAgents({ app_id: "12775" })); // Refresh list
             } catch (error) {
               toast.error("Failed to update agent");
             }
           }}
-          appId="12345"
+          appId="12775"
         />
 
         {/* Delete Confirmation Modal */}

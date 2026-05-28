@@ -19,7 +19,7 @@ export const createAgentColumns = (
     render: (value: any, row: any) => (
       <div className="flex items-center gap-3">
         <div className="text-sm font-semibold cursor-pointer hover:underline" style={{ color: "#2b2b2b" }}>
-          #{row.agentId}
+          #{row.id}
         </div>
         <div className="relative">
           <img

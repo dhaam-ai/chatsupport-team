@@ -6,8 +6,8 @@ export const mfConfig = {
     "./tailwindStyles": "./src/index.css"
   },
   shared: {
-    react: { singleton: true, requiredVersion: false },
-    "react-dom": { singleton: true, requiredVersion: false },
+    react: { singleton: true, requiredVersion: "19.2.0" },
+    "react-dom": { singleton: true, requiredVersion: "19.2.0" },
     "react-router-dom": { singleton: true, requiredVersion: false },
     "react-redux": { singleton: true, requiredVersion: false },
     "@reduxjs/toolkit": { singleton: true, requiredVersion: false },
