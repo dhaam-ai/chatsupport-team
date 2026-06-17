@@ -179,6 +179,7 @@ export interface Agent {
   location?: string;
   team?: string;
   role?: string;
+  department?: string;
   ticketsClosed?: number;
   avgResponseTime?: string;
   performanceScore?: number;

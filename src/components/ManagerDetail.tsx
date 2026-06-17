@@ -98,8 +98,24 @@ const mockAgents = [
   },
 ];
 
-const ManagerDetail = () => {
-  const manager = mockManager;
+interface ManagerDetailProps {
+  manager: any;
+  onBack?: () => void;
+  onEdit?: (manager: any) => void;
+  onDelete?: (manager: any) => void;
+  onBlock?: (managerId: string) => void;
+  onAgentClick?: (agentId: string) => void;
+}
+
+const ManagerDetail: React.FC<ManagerDetailProps> = ({
+  manager: managerProp,
+  onBack,
+  onEdit,
+  onDelete,
+  onBlock,
+  onAgentClick,
+}) => {
+  const manager = managerProp || mockManager;
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [agentsPerPage] = useState(5);

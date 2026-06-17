@@ -66,6 +66,7 @@ import { dummyManagers } from "./data/mockManagers";
 import { createAgentActionHandlers } from "./utils/agentActions";
 import { createTabData, buildFilterParams, groupAgentsByDepartment } from "./utils/filterUtils";
 import { getStatusColor } from "./utils/statusColors";
+import { getAllDepartments, getDepartmentColor, getDepartmentLabel, filterByDepartment, groupByDepartment } from "../utils/departmentConstants";
 
 // Tailwind-based style constants (replacing CSS modules)
 const tw = {
@@ -142,6 +143,8 @@ const tw = {
 import { createAgentColumns } from "./columns/agentColumns";
 import { createManagerColumns } from "./columns/managerColumns";
 import ManagerListView from "./ManagerListview";
+import ManagerSection from "./ManagerSection";
+import { mockManagersData } from "./data/mockManagers";
 import { useLocation } from "react-router-dom";
 
 const AgentSystem = () => {
@@ -194,7 +197,7 @@ const AgentSystem = () => {
   const [inputValue, setInputValue] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [activeTab, setActiveTab] = useState("all");
-  const [displayMode, setDisplayMode] = useState<"agents" | "managers">("agents");
+  const [displayMode, setDisplayMode] = useState<"agents" | "managers" | "manager-monitoring">("agents");
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
@@ -215,6 +218,7 @@ const AgentSystem = () => {
   const [density, setDensity] = useState<Density>("Standard");
   const [isDensityDropdownOpen, setIsDensityDropdownOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [agentActiveState, setAgentActiveState] = useState<
     Record<string, boolean>
   >({});
@@ -444,12 +448,23 @@ const AgentSystem = () => {
   }, [isDensityDropdownOpen]);
 
   const filteredAgents = (agents || []).filter((agent) => {
-    if (activeTab === "all") return true;
-    const status = (agent.account_status || "").toLowerCase();
-    if (activeTab === "block") {
-      return status === "block" || status === "blocked";
+    // Filter by status
+    if (activeTab !== "all") {
+      const status = (agent.account_status || "").toLowerCase();
+      if (activeTab === "block") {
+        if (!(status === "block" || status === "blocked")) return false;
+      } else {
+        if (status !== activeTab.toLowerCase()) return false;
+      }
     }
-    return status === activeTab.toLowerCase();
+
+    // Filter by department
+    if (selectedDepartment) {
+      const agentDept = agent.department || agent.team;
+      if (agentDept !== selectedDepartment) return false;
+    }
+
+    return true;
   });
 
   // Transform status options for FiltersDropdown
@@ -615,19 +630,19 @@ const AgentSystem = () => {
           <ManagerDetail
             manager={selectedManager}
             onBack={() => setSelectedManagerId(null)}
-            onEdit={(manager) => {
+            onEdit={(manager: any) => {
               console.log("Edit manager:", manager);
               // Handle edit manager
             }}
-            onDelete={(manager) => {
+            onDelete={(manager: any) => {
               console.log("Delete manager:", manager);
               // Handle delete manager
             }}
-            onBlock={(managerId) => {
+            onBlock={(managerId: string) => {
               console.log("Block manager:", managerId);
               // Handle block manager
             }}
-            onAgentClick={(agentId) => {
+            onAgentClick={(agentId: string) => {
               setSelectedManagerId(null);
               setSelectedAgentId(agentId);
             }}
@@ -709,6 +724,16 @@ const AgentSystem = () => {
                 >
                   Managers
                 </button>
+                <button
+                  onClick={() => setDisplayMode("manager-monitoring")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    displayMode === "manager-monitoring"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Monitoring
+                </button>
               </div>
             )}
           </div>
@@ -736,6 +761,8 @@ const AgentSystem = () => {
 
       <div className={tw["agent-system-content"]}>
         <div className={tw["agent-system-container"]}>
+          {displayMode !== "manager-monitoring" && (
+            <>
           <div className={tw["agent-tabs-wrapper"]}>
             <div className={tw["agent-tabs-container"]}>
               {tabData.map((tab) => (
@@ -776,6 +803,23 @@ const AgentSystem = () => {
                   categories={departmentOptions}
                   activeTab={activeTab}
                 />
+
+                {/* Department Filter Dropdown */}
+                <div className="relative">
+                  <select
+                    value={selectedDepartment || ''}
+                    onChange={(e) => setSelectedDepartment(e.target.value || null)}
+                    className={`${tw["toolbar-button"]} appearance-none bg-white pr-8`}
+                  >
+                    <option value="">All Departments</option>
+                    {getAllDepartments().map(dept => (
+                      <option key={dept.value} value={dept.value}>
+                        {dept.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-600" />
+                </div>
                 
                 <button className={tw["toolbar-button"]}>
                   <ColumnIcon />
@@ -853,17 +897,22 @@ const AgentSystem = () => {
                 </div>
               </div>
           </div>
+            </>
+          )}
 
           {/* DESKTOP VIEW - Uses CSS class to show/hide (prevents navigation layout issues) */}
           <div className="desktopOnly flex-1 min-h-0 overflow-hidden">
-              {departmentHierarchy && displayMode === "managers" ? (
+              {displayMode === "manager-monitoring" ? (
+                /* MANAGER MONITORING VIEW */
+                <ManagerSection managers={filterByDepartment(mockManagersData, selectedDepartment)} onManagerSelect={(managerId) => setSelectedManagerId(managerId)} />
+              ) : departmentHierarchy && displayMode === "managers" ? (
                 /* MANAGERS VIEW WITH BOTH TABLE AND CARD LISTING */
                 <div className={tw["agent-managers-section"]}>
                   {viewMode === "list" ? (
                     /* Manager Table List View */
                     <ReusableTable
                       columns={managerColumns}
-                      rows={dummyManagers.map((manager) => ({
+                      rows={filterByDepartment(dummyManagers, selectedDepartment).map((manager) => ({
                         id: manager.id,
                         name: manager.name,
                         role: manager.role,
@@ -893,7 +942,7 @@ const AgentSystem = () => {
                   ) : (
                     /* Manager Card Grid View */
                     <ManagerListView
-                      managers={dummyManagers}
+                      managers={filterByDepartment(dummyManagers, selectedDepartment)}
                       loading={false}
                       onEdit={(manager) => {
                         console.log("Edit manager:", manager);
@@ -971,11 +1020,14 @@ const AgentSystem = () => {
 
           {/* MOBILE VIEW - Uses CSS class to show/hide (prevents navigation layout issues) */}
           <div className="mobileOnly flex-1 min-h-0 overflow-hidden">
-              {departmentHierarchy && displayMode === "managers" ? (
+              {displayMode === "manager-monitoring" ? (
+                /* MANAGER MONITORING VIEW MOBILE */
+                <ManagerSection managers={filterByDepartment(mockManagersData, selectedDepartment)} onManagerSelect={(managerId) => setSelectedManagerId(managerId)} />
+              ) : departmentHierarchy && displayMode === "managers" ? (
                 /* Mobile Manager Cards */
               <div className={tw["mobile-view-content"]}>
                 <div className={tw["mobile-cards-container"]}>
-                  {dummyManagers.map((manager) => (
+                  {filterByDepartment(dummyManagers, selectedDepartment).map((manager) => (
                     <div
                       key={manager.id}
                       className={tw["mobile-card"]}

@@ -11,6 +11,7 @@ export interface Agent {
   name: string;
   role: string; // No role in API, use fallback
   team: string; // No team in API, use fallback
+  department?: string; // Department the agent belongs to
   email: string;
   phone: string; // Maps from contact_no
   location: string; // Maps from address
