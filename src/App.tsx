@@ -6,7 +6,7 @@ import "./index.css";
 
 const App = () => {
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div className="cs-team-root">
       <ReduxProvider>
         <Toaster position="top-right" />
         <AgentSystemComponent />

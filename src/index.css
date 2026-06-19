@@ -146,3 +146,10 @@
     display: none !important;
   }
 }
+/* Federated-module scope root: Tailwind utilities are prefixed with this
+   class (postcss-scope-tailwind.mjs) so they only apply inside this module. */
+.cs-team-root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
