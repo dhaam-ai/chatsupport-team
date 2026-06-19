@@ -10,11 +10,19 @@
  *
  * This plugin runs AFTER @tailwindcss/postcss has expanded the sheet and
  * prefixes every selector inside the `utilities` / `components` cascade layers
- * with a per-module scope class (e.g. `.cs-tickets-root`). The scope is added
- * as an ancestor combinator, so a module's utilities only ever match elements
- * inside that module's own subtree. preflight (`base` layer) and theme tokens
- * (`:root` vars) stay global on purpose — they're identical across modules and
- * harmless to share.
+ * with a per-module scope, using `:where(.cs-<name>-root)`. The `:where()`
+ * wrapper has ZERO specificity, so a scoped utility keeps the exact same
+ * specificity it had vanilla (e.g. `.p-4` stays 0,1,0). That matters: it means
+ * each module renders identically to how it did standalone — utilities don't
+ * suddenly start beating the module's own component CSS. Isolation comes purely
+ * from the scope MATCHING (a module's utilities only match inside its own
+ * subtree), not from raised specificity.
+ *
+ * Cross-module overrides are eliminated because remote A's utilities can never
+ * match remote B's elements. The host shell stays global and loads first, so
+ * for any remote element the remote's (later, equal-specificity) utilities win
+ * over the host's by document order. preflight (`base` layer) and theme tokens
+ * (`:root` vars) stay global on purpose — identical across modules.
  *
  * The module's root component must render a wrapper with the scope class.
  */
@@ -36,7 +44,7 @@ export default function scopeTailwind({ scope }) {
         layer.walkRules((rule) => {
           if (isInsideKeyframes(rule)) return;
           rule.selectors = rule.selectors.map((sel) =>
-            sel.includes(scope) ? sel : `${scope} ${sel}`
+            sel.includes(scope) ? sel : `:where(${scope}) ${sel}`
           );
         });
       });
